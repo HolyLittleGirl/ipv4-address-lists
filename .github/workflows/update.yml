@@ -92,6 +92,7 @@ jobs:
           python3 - << 'EOF'
           import ipaddress
           import re
+
           files = [
               "google_cloud_aistudio.txt",
               "meta.txt",
@@ -105,13 +106,25 @@ jobs:
 
           cidr_re = re.compile(r'^\d+\.\d+\.\d+\.\d+/\d+$')
 
+          def normalize(ip):
+              ip_part, mask = ip.split("/")
+              octets = ip_part.split(".")
+              octets = [str(int(o)) for o in octets]  # убираем ведущие нули
+              return ".".join(octets) + "/" + mask
+
           for fname in files:
               nets = []
+
               with open(fname) as f:
                   for line in f:
                       line = line.strip()
-                      if cidr_re.match(line):
-                          nets.append(ipaddress.ip_network(line))
+                      if not cidr_re.match(line):
+                          continue
+                      try:
+                          clean = normalize(line)
+                          nets.append(ipaddress.ip_network(clean))
+                      except Exception:
+                          continue
 
               collapsed = ipaddress.collapse_addresses(nets)
 
