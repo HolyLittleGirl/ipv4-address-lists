@@ -43,6 +43,26 @@ jobs:
           | grep -Eo "([0-9]+\.){3}[0-9]+/[0-9]+" \
           | sort -u > roblox.txt
 
+      - name: Perplexity IPv4
+        run: |
+          whois -h whois.radb.net -- "-i origin AS16509" \
+          | grep -Eo "([0-9]+\.){3}[0-9]+/[0-9]+" > perplexity.txt
+
+          whois -h whois.radb.net -- "-i origin AS14618" \
+          | grep -Eo "([0-9]+\.){3}[0-9]+/[0-9]+" >> perplexity.txt
+
+          sort -u perplexity.txt -o perplexity.txt
+
+      - name: OpenAI ChatGPT IPv4
+        run: |
+          whois -h whois.radb.net -- "-i origin AS8075" \
+          | grep -Eo "([0-9]+\.){3}[0-9]+/[0-9]+" > openai_chatgpt.txt
+
+          whois -h whois.radb.net -- "-i origin AS13335" \
+          | grep -Eo "([0-9]+\.){3}[0-9]+/[0-9]+" >> openai_chatgpt.txt
+
+          sort -u openai_chatgpt.txt -o openai_chatgpt.txt
+
       - name: Telegram
         run: |
           curl -s https://core.telegram.org/resources/cidr.txt \
