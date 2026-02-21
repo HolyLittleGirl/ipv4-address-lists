@@ -87,11 +87,12 @@ jobs:
 
       # ---------------- COLLAPSE ----------------
 
-      - name: Aggressive Supernet Collapse
+      - name: Bounded CIDR collapse (/16 max)
         run: |
           python3 - << 'EOF'
           import ipaddress
           import re
+          from collections import defaultdict
 
           files = [
               "google_cloud_aistudio.txt",
@@ -108,11 +109,10 @@ jobs:
 
           def normalize(ip):
               ip_part, mask = ip.split("/")
-              octets = [str(int(o)) for o in ip_part.split(".")]
-              return ".".join(octets) + "/" + mask
+              return ".".join(str(int(o)) for o in ip_part.split(".")) + "/" + mask
 
           for fname in files:
-              all_ips = []
+              buckets = defaultdict(list)
 
               with open(fname) as f:
                   for line in f:
@@ -120,22 +120,22 @@ jobs:
                       if not cidr_re.match(line):
                           continue
                       try:
-                          clean = normalize(line)
-                          net = ipaddress.ip_network(clean)
-                          all_ips.append(net)
+                          net = ipaddress.ip_network(normalize(line))
+                          bucket = ipaddress.ip_network(f"{net.network_address}/16", strict=False)
+                          buckets[bucket].append(net)
                       except:
                           continue
 
-              if not all_ips:
-                  continue
+              result = []
 
-              min_ip = min(net.network_address for net in all_ips)
-              max_ip = max(net.broadcast_address for net in all_ips)
-
-              supernets = ipaddress.summarize_address_range(min_ip, max_ip)
+              for bucket, nets in buckets.items():
+                  if len(nets) == 1:
+                      result.append(nets[0])
+                  else:
+                      result.append(bucket)
 
               with open(fname, "w") as f:
-                  for net in supernets:
+                  for net in sorted(result, key=lambda x: int(x.network_address)):
                       f.write(str(net) + "\n")
           EOF
 
