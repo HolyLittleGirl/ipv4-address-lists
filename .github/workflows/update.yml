@@ -8,11 +8,16 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y jq whois curl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq whois curl iprange
+
+      # ---------------- GOOGLE ----------------
 
       - name: Google Cloud + AI Studio
         run: |
@@ -25,23 +30,31 @@ jobs:
         run: |
           cp google_cloud_aistudio.txt youtube.txt
 
+      # ---------------- META ----------------
+
       - name: Meta (Facebook, Instagram, WhatsApp)
         run: |
           whois -h whois.radb.net -- "-i origin AS32934" \
           | grep -Eo "([0-9]+\.){3}[0-9]+/[0-9]+" \
           | sort -u > meta.txt
 
+      # ---------------- DISCORD ----------------
+
       - name: Discord
         run: |
           whois -h whois.radb.net -- "-i origin AS49544" \
-          | grep -Eo "([0-9]+\.){3}[0-9]+" \
+          | grep -Eo "([0-9]+\.){3}[0-9]+/[0-9]+" \
           | sort -u > discord.txt
+
+      # ---------------- ROBLOX ----------------
 
       - name: Roblox
         run: |
           whois -h whois.radb.net -- "-i origin AS22697" \
           | grep -Eo "([0-9]+\.){3}[0-9]+/[0-9]+" \
           | sort -u > roblox.txt
+
+      # ---------------- PERPLEXITY ----------------
 
       - name: Perplexity IPv4
         run: |
@@ -53,6 +66,8 @@ jobs:
 
           sort -u perplexity.txt -o perplexity.txt
 
+      # ---------------- OPENAI ----------------
+
       - name: OpenAI ChatGPT IPv4
         run: |
           whois -h whois.radb.net -- "-i origin AS8075" \
@@ -63,15 +78,29 @@ jobs:
 
           sort -u openai_chatgpt.txt -o openai_chatgpt.txt
 
+      # ---------------- TELEGRAM ----------------
+
       - name: Telegram
         run: |
           curl -s https://core.telegram.org/resources/cidr.txt \
           | grep -v ":" > telegram.txt
+
+      # ---------------- COLLAPSE ----------------
+
+      - name: Collapse CIDR ranges
+        run: |
+          for file in google_cloud_aistudio.txt meta.txt youtube.txt discord.txt roblox.txt telegram.txt perplexity.txt openai_chatgpt.txt
+          do
+            aggregate "$file" > tmp.txt
+            mv tmp.txt "$file"
+          done
+
+      # ---------------- COMMIT ----------------
 
       - name: Commit updates
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add .
-          git commit -m "Weekly IPv4 update" || exit 0
+          git commit -m "Weekly IPv4 update (collapsed)" || exit 0
           git push
