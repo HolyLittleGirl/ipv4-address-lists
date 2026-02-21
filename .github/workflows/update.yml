@@ -15,7 +15,7 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq whois curl iprange
+          sudo apt-get install -y jq whois curl iprange ipcalc
 
       # ---------------- GOOGLE ----------------
 
@@ -91,7 +91,7 @@ jobs:
         run: |
           for file in google_cloud_aistudio.txt meta.txt youtube.txt discord.txt roblox.txt telegram.txt perplexity.txt openai_chatgpt.txt
           do
-            aggregate "$file" > tmp.txt
+            cat "$file" | ipcalc -n | sort -u > tmp.txt
             mv tmp.txt "$file"
           done
 
