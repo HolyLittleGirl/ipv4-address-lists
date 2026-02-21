@@ -89,13 +89,36 @@ jobs:
 
       - name: Collapse CIDR ranges
         run: |
-          for file in google_cloud_aistudio.txt meta.txt youtube.txt discord.txt roblox.txt telegram.txt perplexity.txt openai_chatgpt.txt
-          do
-            grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$' "$file" \
-            | sort -u \
-            | aggregate > tmp.txt
-            mv tmp.txt "$file"
-          done
+          python3 - << 'EOF'
+          import ipaddress
+          import re
+          files = [
+              "google_cloud_aistudio.txt",
+              "meta.txt",
+              "youtube.txt",
+              "discord.txt",
+              "roblox.txt",
+              "telegram.txt",
+              "perplexity.txt",
+              "openai_chatgpt.txt"
+          ]
+
+          cidr_re = re.compile(r'^\d+\.\d+\.\d+\.\d+/\d+$')
+
+          for fname in files:
+              nets = []
+              with open(fname) as f:
+                  for line in f:
+                      line = line.strip()
+                      if cidr_re.match(line):
+                          nets.append(ipaddress.ip_network(line))
+
+              collapsed = ipaddress.collapse_addresses(nets)
+
+              with open(fname, "w") as f:
+                  for n in collapsed:
+                      f.write(str(n) + "\n")
+          EOF
 
       # ---------------- COMMIT ----------------
 
