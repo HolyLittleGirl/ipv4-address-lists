@@ -87,7 +87,7 @@ jobs:
 
       # ---------------- COLLAPSE ----------------
 
-      - name: Collapse CIDR ranges
+      - name: Aggressive Supernet Collapse
         run: |
           python3 - << 'EOF'
           import ipaddress
@@ -108,12 +108,11 @@ jobs:
 
           def normalize(ip):
               ip_part, mask = ip.split("/")
-              octets = ip_part.split(".")
-              octets = [str(int(o)) for o in octets]  # убираем ведущие нули
+              octets = [str(int(o)) for o in ip_part.split(".")]
               return ".".join(octets) + "/" + mask
 
           for fname in files:
-              nets = []
+              all_ips = []
 
               with open(fname) as f:
                   for line in f:
@@ -122,15 +121,22 @@ jobs:
                           continue
                       try:
                           clean = normalize(line)
-                          nets.append(ipaddress.ip_network(clean))
-                      except Exception:
+                          net = ipaddress.ip_network(clean)
+                          all_ips.append(net)
+                      except:
                           continue
 
-              collapsed = ipaddress.collapse_addresses(nets)
+              if not all_ips:
+                  continue
+
+              min_ip = min(net.network_address for net in all_ips)
+              max_ip = max(net.broadcast_address for net in all_ips)
+
+              supernets = ipaddress.summarize_address_range(min_ip, max_ip)
 
               with open(fname, "w") as f:
-                  for n in collapsed:
-                      f.write(str(n) + "\n")
+                  for net in supernets:
+                      f.write(str(net) + "\n")
           EOF
 
       # ---------------- COMMIT ----------------
