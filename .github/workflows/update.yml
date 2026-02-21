@@ -91,7 +91,9 @@ jobs:
         run: |
           for file in google_cloud_aistudio.txt meta.txt youtube.txt discord.txt roblox.txt telegram.txt perplexity.txt openai_chatgpt.txt
           do
-            cat "$file" | ipcalc -n | sort -u > tmp.txt
+            grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$' "$file" \
+            | ipcalc -n \
+            | sort -u > tmp.txt
             mv tmp.txt "$file"
           done
 
