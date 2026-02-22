@@ -87,7 +87,7 @@ jobs:
 
       # ---------------- COLLAPSE ----------------
 
-      - name: Bounded CIDR collapse (/16 max)
+      - name: Bounded CIDR collapse (/16 max + DNS exclude)
         run: |
           python3 - << 'EOF'
           import ipaddress
@@ -107,6 +107,14 @@ jobs:
 
           cidr_re = re.compile(r'^\d+\.\d+\.\d+\.\d+/\d+$')
 
+          # DNS networks to always exclude
+          excluded = [
+              ipaddress.ip_network("1.1.1.0/24"),
+              ipaddress.ip_network("1.0.0.0/24"),
+              ipaddress.ip_network("8.8.8.0/24"),
+              ipaddress.ip_network("8.8.4.0/24"),
+          ]
+
           def normalize(ip):
               ip_part, mask = ip.split("/")
               return ".".join(str(int(o)) for o in ip_part.split(".")) + "/" + mask
@@ -121,6 +129,11 @@ jobs:
                           continue
                       try:
                           net = ipaddress.ip_network(normalize(line))
+
+                          # skip excluded DNS ranges
+                          if any(net.subnet_of(ex) or net == ex for ex in excluded):
+                              continue
+
                           bucket = ipaddress.ip_network(f"{net.network_address}/16", strict=False)
                           buckets[bucket].append(net)
                       except:
